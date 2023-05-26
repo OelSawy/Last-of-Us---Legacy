@@ -50,6 +50,8 @@ public class GameView  extends Application  {
 		"file:///F:/GUC/Semester%204/Computer%20Science%20-%20CSEN401/Game/Milestone2-Solution/src/assets/images/henry%20hero.png"
 	};
 
+	boolean gameWon;
+
 	Hero selectedHero;
 
 	int initialHero;
@@ -188,7 +190,7 @@ public class GameView  extends Application  {
 		HBox hbox2 = new HBox();
 		VBox allHeroes = new VBox();
 		HBox root2 = new HBox();
-		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 30);
+		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 23);
 		ArrayList<Button> buttons1 = new ArrayList<Button>();
 		ArrayList<Button> buttons2 = new ArrayList<Button>();
 		Font headerFont = Font.font("Another Danger - Demo", FontWeight.BOLD, 70);
@@ -323,9 +325,9 @@ public class GameView  extends Application  {
 		HBox root2 = new HBox();
 		VBox details = new VBox();
 		VBox controls = new VBox();
-		ArrayList<VBox> otherHeroes = new ArrayList<VBox>();
 		Button[][] buttons = new Button[Game.map.length][Game.map.length];
-		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 30);
+		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 23);
+		Font font2 = Font.font("Game Continue 02", FontWeight.NORMAL, 23);
 		Image arrowUp = new Image("file:///F:/GUC/Semester%204/Computer%20Science%20-%20CSEN401/Game/Milestone2-Solution/src/assets/images/arrow%20up.png");
 		ImageView upView = new ImageView(arrowUp);
 		upView.setFitHeight(48);
@@ -342,6 +344,8 @@ public class GameView  extends Application  {
 		ImageView rightView = new ImageView(arrowRight);
 		rightView.setFitHeight(48);
 		rightView.setFitWidth(48);
+		Label selectedHeader = new Label("Selected Hero :");
+		selectedHeader.setFont(font);
 		for (int i = 0; i < Game.map.length; i++) {
 			for (int j = 0; j < Game.map[i].length; j++) {
 				final int i1 = i;
@@ -357,6 +361,7 @@ public class GameView  extends Application  {
 						if (mode == SelectionMode.HERO && Game.map[Game.map.length-1-j1][i1] instanceof CharacterCell && ((CharacterCell)Game.map[Game.map.length-1-j1][i1]).getCharacter() instanceof Hero) {
 							selectedHero = (Hero) ((CharacterCell) Game.map[Game.map.length-1-j1][i1]).getCharacter();
 							updateHeroDetails();
+							updateOtherHeroes(details);
 						} else if (mode == SelectionMode.TARGET && Game.map[Game.map.length-1-j1][i1] instanceof CharacterCell && ((CharacterCell)Game.map[Game.map.length-1-j1][i1]).getCharacter() != null) {
 							selectedHero.setTarget(((CharacterCell) Game.map[Game.map.length-1-j1][i1]).getCharacter());
 						}
@@ -366,40 +371,13 @@ public class GameView  extends Application  {
 				mapPane.add(b, i, j);
 			}
 		}
-		for (int i = 0; i < Game.heroes.size(); i++) {
-			if (Game.heroes.get(i) != selectedHero) {
-				Label otherName = new Label("Name : " + Game.heroes.get(i).getName());
-				otherName.setFont(font);
-				otherName.setTextFill(Color.BLACK);
-				Label otherType = new Label("Type : " + Game.heroes.get(i).getClass().getSimpleName());
-				otherType.setFont(font);
-				otherType.setTextFill(Color.BLACK);
-				Label otherCurrentHp = new Label("Current HP : " + Game.heroes.get(i).getCurrentHp());
-				otherCurrentHp.setFont(font);
-				otherCurrentHp.setTextFill(Color.BLACK);
-				Label otherDamage = new Label("Attack Damage : " + Game.heroes.get(i).getAttackDmg());
-				otherDamage.setFont(font);
-				otherDamage.setTextFill(Color.BLACK);
-				Label otherActions = new Label("Available Actions : " + Game.heroes.get(i).getActionsAvailable());
-				otherActions.setFont(font);
-				otherActions.setTextFill(Color.BLACK);
-				Label otherSuppCount = new Label("Supplies Count : " + Game.heroes.get(i).getSupplyInventory().size());
-				otherSuppCount.setFont(font);
-				otherSuppCount.setTextFill(Color.BLACK);
-				Label otherVaccCount = new Label("Vaccines Count : " + Game.heroes.get(i).getVaccineInventory().size());
-				otherVaccCount.setFont(font);
-				otherVaccCount.setTextFill(Color.BLACK);
-				VBox temp = new VBox();
-				temp.getChildren().addAll(otherName, otherType, otherCurrentHp,	otherDamage, otherActions, otherSuppCount, otherVaccCount);
-			}
-		}
 		Label errorMessage = new Label();
 		errorMessage.setFont(font);
 		errorMessage.setTextFill(Color.RED);
 		updateHeroDetails();
+		details.getChildren().add(selectedHeader);
+		VBox.setMargin(selectedHeader, new Insets(0, 0, 20, 0));
 		details.getChildren().addAll(selectedHeroDetails);
-		details.getChildren().addAll(otherHeroes);
-		
 		Button attack = new Button("Attack");
 		attack.setFont(font);
 		attack.setPrefSize(250, 50);
@@ -413,12 +391,17 @@ public class GameView  extends Application  {
 					errorMessage.setText("");
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
-					updateMap(mapPane, buttons);
 				} catch (InvalidTargetException e) {
 					errorMessage.setText(e.getMessage());
-					updateMap(mapPane, buttons);
 				}
-				updateMap(mapPane, buttons);
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
 			}
 		});
 		Button cure = new Button("Cure");
@@ -429,8 +412,9 @@ public class GameView  extends Application  {
 			public void handle(Event arg0) {
 				try {
 					selectedHero.cure();
-					updateHeroDetails();
 					updateMap(mapPane, buttons);
+					updateHeroDetails();
+					updateOtherHeroes(details);
 					errorMessage.setText("");
 				} catch (NoAvailableResourcesException e) {
 					errorMessage.setText(e.getMessage());
@@ -438,6 +422,14 @@ public class GameView  extends Application  {
 					errorMessage.setText(e.getMessage());
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
+				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
 				}
 			}
 		});
@@ -450,12 +442,21 @@ public class GameView  extends Application  {
 				try {
 					selectedHero.useSpecial();
 					updateHeroDetails();
+					updateOtherHeroes(details);
 					updateMap(mapPane, buttons);
 					errorMessage.setText("");
 				} catch (NoAvailableResourcesException e) {
 					errorMessage.setText(e.getMessage());
 				} catch (InvalidTargetException e) {
 					errorMessage.setText(e.getMessage());
+				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
 				}
 			}
 		});
@@ -471,6 +472,14 @@ public class GameView  extends Application  {
 				} else {
 					mode = SelectionMode.HERO;
 					setTarget.setText("Choose Target");
+					if (Game.checkWin()) {
+						gameWon = true;
+						primaryStage.setScene(gameEnd(primaryStage));
+					}
+					if (Game.checkGameOver()) {
+						gameWon = false;
+						primaryStage.setScene(gameEnd(primaryStage));
+					}
 				}
 			}
 		});
@@ -482,86 +491,146 @@ public class GameView  extends Application  {
 			public void handle(Event arg0) {
 				Game.endTurn();
 				updateHeroDetails();
+				updateOtherHeroes(details);
 				errorMessage.setText("");
 				updateMap(mapPane, buttons);
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
 			}
 		});
 		controls.getChildren().addAll(attack,cure,useSpecial,setTarget,endTurn);
-
 		Button moveUp = new Button();
-		moveUp.setFont(font);
+		moveUp.setFont(font2);
 		moveUp.setPrefSize(64,64);
 		moveUp.setGraphic(upView);
 		moveUp.setOnMouseClicked(new EventHandler<Event>() {
 			@Override
 			public void handle(Event arg0) {
+				int initial = selectedHero.getCurrentHp();
 				try {
 					selectedHero.move(Direction.UP);
 					updateMap(mapPane, buttons);
 					updateHeroDetails();
-					errorMessage.setText("");
+					if (selectedHero.getCurrentHp() < initial) {
+						errorMessage.setText("Trap damage taken " + (initial - selectedHero.getCurrentHp()));
+					} else {
+						errorMessage.setText("");
+					}
 				} catch (MovementException e) {
 					errorMessage.setText(e.getMessage());
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
 				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
 			}
 		});
 		Button moveDown = new Button();
-		moveDown.setFont(font);
+		moveDown.setFont(font2);
 		moveDown.setPrefSize(64,64);
 		moveDown.setGraphic(downView);
 		moveDown.setOnMouseClicked(new EventHandler<Event>() {
 			@Override
 			public void handle(Event arg0) {
+				int initial = selectedHero.getCurrentHp();
 				try {
 					selectedHero.move(Direction.DOWN);
 					updateMap(mapPane, buttons);
 					updateHeroDetails();
-					errorMessage.setText("");
+					if (selectedHero.getCurrentHp() < initial) {
+						errorMessage.setText("Trap damage taken " + (initial - selectedHero.getCurrentHp()));
+					} else {
+						errorMessage.setText("");
+					}
 				} catch (MovementException e) {
 					errorMessage.setText(e.getMessage());
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
 				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
 			}
 		});
 		Button moveLeft = new Button();
-		moveLeft.setFont(font);
+		moveLeft.setFont(font2);
 		moveLeft.setMaxHeight(64);
 		moveLeft.setMaxWidth(64);
 		moveLeft.setGraphic(leftView);
 		moveLeft.setOnMouseClicked(new EventHandler<Event>() {
 			@Override
 			public void handle(Event arg0) {
+				int initial = selectedHero.getCurrentHp();
 				try {
 					selectedHero.move(Direction.LEFT);
 					updateMap(mapPane, buttons);
 					updateHeroDetails();
-					errorMessage.setText("");
+					if (selectedHero.getCurrentHp() < initial) {
+						errorMessage.setText("Trap damage taken " + (initial - selectedHero.getCurrentHp()));
+					} else {
+						errorMessage.setText("");
+					}
 				} catch (MovementException e) {
 					errorMessage.setText(e.getMessage());
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
 				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
 			}
 		});
 		Button moveRight = new Button();
-		moveRight.setFont(font);
+		moveRight.setFont(font2);
 		moveRight.setPrefSize(64,64);
 		moveRight.setGraphic(rightView);
 		moveRight.setOnMouseClicked(new EventHandler<Event>() {
 			@Override
 			public void handle(Event arg0) {
+				int initial = selectedHero.getCurrentHp();
 				try {
 					selectedHero.move(Direction.RIGHT);
 					updateMap(mapPane, buttons);
 					updateHeroDetails();
-					errorMessage.setText("");
+					if (selectedHero.getCurrentHp() < initial) {
+						errorMessage.setText("Trap damage taken " + (initial - selectedHero.getCurrentHp()));
+					} else {
+						errorMessage.setText("");
+					}
 				} catch (MovementException e) {
 					errorMessage.setText(e.getMessage());
 				} catch (NotEnoughActionsException e) {
 					errorMessage.setText(e.getMessage());
+				}
+				if (Game.checkWin()) {
+					gameWon = true;
+					primaryStage.setScene(gameEnd(primaryStage));
+				}
+				if (Game.checkGameOver()) {
+					gameWon = false;
+					primaryStage.setScene(gameEnd(primaryStage));
 				}
 			}
 		});
@@ -639,7 +708,7 @@ public class GameView  extends Application  {
 	}
 
 	private void updateHeroDetails() {
-		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 30);
+		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 23);
 		selectedHeroDetails[0].setText("Name : " + selectedHero.getName());
 		selectedHeroDetails[0].setFont(font);
 		selectedHeroDetails[0].setTextFill(Color.BLACK);
@@ -662,7 +731,66 @@ public class GameView  extends Application  {
 		selectedHeroDetails[6].setFont(font);
 		selectedHeroDetails[6].setTextFill(Color.BLACK);
 	}
-	
+
+	private void updateOtherHeroes(VBox v) {
+		Font font = Font.font("Game Continue 02", FontWeight.NORMAL, 23);
+		v.getChildren().clear();
+		Label selectedHeader = new Label("Selected Hero :");
+		Label otherHeader = new Label("Other Heroes :");
+		selectedHeader.setFont(font);
+		otherHeader.setFont(font);
+		v.getChildren().add(selectedHeader);
+		VBox.setMargin(selectedHeader, new Insets(0, 0, 20, 0));
+		VBox.setMargin(otherHeader, new Insets(20, 0, 20, 0));
+		v.getChildren().addAll(selectedHeroDetails);
+		v.getChildren().add(otherHeader);
+		for (int i = 0; i < Game.heroes.size(); i++) {
+			if (Game.heroes.get(i) != selectedHero) {
+				Label name = new Label("Name : " + Game.heroes.get(i).getName());
+				name.setFont(font);
+				name.setTextFill(Color.BLACK);
+				Label type = new Label("Type : " + Game.heroes.get(i).getClass().getSimpleName());
+				type.setFont(font);
+				type.setTextFill(Color.BLACK);
+				Label hp = new Label("Current HP : " + Game.heroes.get(i).getCurrentHp());
+				hp.setFont(font);
+				hp.setTextFill(Color.BLACK);
+				Label damage = new Label("Attack Damage : " + Game.heroes.get(i).getAttackDmg());
+				damage.setFont(font);
+				damage.setTextFill(Color.BLACK);
+				Label actions = new Label("Available Actions : " + Game.heroes.get(i).getActionsAvailable());
+				actions.setFont(font);
+				actions.setTextFill(Color.BLACK);
+				Label vaccines = new Label("Vaccines Count : " + Game.heroes.get(i).getVaccineInventory().size());
+				vaccines.setFont(font);
+				vaccines.setTextFill(Color.BLACK);
+				Label supplies = new Label("Supplies Count : " + Game.heroes.get(i).getSupplyInventory().size());
+				supplies.setFont(font);
+				supplies.setTextFill(Color.BLACK);
+				v.getChildren().addAll(name,type,hp,damage,actions,vaccines,supplies);
+			}
+		}
+	}
+
+	private Scene gameEnd(Stage primaryStage) {
+		Image background = new Image("file:///F:/GUC/Semester%204/Computer%20Science%20-%20CSEN401/Game/Milestone2-Solution/src/assets/images/background.jpg");
+		ImageView backgroundView = new ImageView(background);
+		StackPane root = new StackPane();
+		Font headerFont = Font.font("Another Danger - Demo", FontWeight.BOLD, 70);
+		Label header = new Label();
+		if (gameWon) {
+			header.setText("You Won !");
+		} else {
+			header.setText("You Lost !");
+		}
+		header.setFont(headerFont);
+		header.setTranslateX(200);
+		header.setTranslateY(350);
+		header.setTextFill(Color.WHITE);
+		root.getChildren().addAll(backgroundView,header);
+		Scene gameEndScene = new Scene(root);
+		return gameEndScene;
+	}
 	public static void main(String[] args) {
 		launch(args);
 	}
